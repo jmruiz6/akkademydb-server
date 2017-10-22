@@ -4,9 +4,7 @@ import akka.actor.AbstractActor;
 import akka.actor.Status;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import message.GetRequest;
-import message.KeyNotFoundException;
-import message.SetRequest;
+import message.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,12 +22,31 @@ public class AkkademyDb extends AbstractActor {
                     map.put(message.getKey(), message.getValue());
                     getSender().tell(message, getSelf());
                 })
+                .match(SetIfNotExists.class, message -> {
+                    log.info("Received set if not exists request – key: {} value:{}", message.getKey(), message.getValue());
+                    Object value = map.get(message.getKey());
+                    if(value == null) {
+                        map.put(message.getKey(), message.getValue());
+                    }
+                    getSender().tell(message, getSelf());
+                })
                 .match(GetRequest.class, message -> {
                     log.info("Received get request – key: {} ", message.key);
                     Object value = map.get(message.key);
                     Object response = (value != null) ? value
                             : new Status.Failure(new KeyNotFoundException(message.key));
                     getSender().tell(response, self());
+                })
+                .match(Delete.class, message -> {
+                    log.info("Received delete request – key: {} ", message.key);
+                    Object value = map.get(message.key);
+                    if(value != null) {
+                        map.remove(message.key);
+                        getSender().tell(message, getSelf());
+                    } else {
+                        getSender().tell(new Status.Failure(new KeyNotFoundException(message.key)), self());
+                    }
+
                 })
                 .matchAny(o -> sender().tell(new Status.Failure(new ClassNotFoundException()), self()))
                 .build();
