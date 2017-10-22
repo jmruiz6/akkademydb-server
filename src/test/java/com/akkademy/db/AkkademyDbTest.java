@@ -6,12 +6,15 @@ import akka.actor.Props;
 import akka.testkit.TestActorRef;
 import com.typesafe.config.ConfigFactory;
 import message.Delete;
+import message.KeyExistsException;
+import message.SetIfNotExists;
 import message.SetRequest;
 import org.junit.After;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertEquals;
 
@@ -19,15 +22,27 @@ public class AkkademyDbTest {
     static ActorSystem system = ActorSystem.create("AkkademyDb", ConfigFactory.load(("akkademydb")));
 
     @Test
-    public void itShouldPlaceKeyValueFromSetMessageIntoMap() {
+    public void itShouldStoreKeyValue() {
         TestActorRef<AkkademyDb> actorRef = TestActorRef.
                 create(system, Props.create(AkkademyDb.class));
 
-        actorRef.tell(new SetRequest("key", "value"), ActorRef.
+        actorRef.tell(new SetRequest("key1", "value1"), ActorRef.
                 noSender());
 
         AkkademyDb akkademyDb = actorRef.underlyingActor();
-        assertEquals(akkademyDb.map.get("key"), "value");
+        assertEquals(akkademyDb.map.get("key1"), "value1");
+    }
+
+    @Test
+    public void itShouldStoreKeyValueIfNotExists() {
+        TestActorRef<AkkademyDb> actorRef = TestActorRef.
+                create(system, Props.create(AkkademyDb.class));
+
+        actorRef.tell(new SetIfNotExists("key2", "value2"), ActorRef.
+                noSender());
+
+        AkkademyDb akkademyDb = actorRef.underlyingActor();
+        assertEquals(akkademyDb.map.get("key2"), "value2");
     }
 
     @Test

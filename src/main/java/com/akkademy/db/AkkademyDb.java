@@ -27,6 +27,8 @@ public class AkkademyDb extends AbstractActor {
                     Object value = map.get(message.getKey());
                     if(value == null) {
                         map.put(message.getKey(), message.getValue());
+                    } else {
+                        getSender().tell(new Status.Failure(new KeyExistsException(message.getKey())), self());
                     }
                     getSender().tell(message, getSelf());
                 })
